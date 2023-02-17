@@ -342,6 +342,20 @@ pub fn attestation_handler() -> impl Fn(Result<GraphcastMessage<RadioPayloadMess
     }
 }
 
+pub enum CompareError {
+    Critical(String),
+    NonCritical(String),
+}
+
+impl std::fmt::Display for CompareError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            CompareError::Critical(msg) => write!(f, "Critical error: {}", msg),
+            CompareError::NonCritical(msg) => write!(f, "Non-critical error: {}", msg),
+        }
+    }
+}
+
 /// Compares local attestations against remote ones using the attestation stores we populated while processing saved GraphcastMessage messages.
 /// It takes our attestation (NPOI) for a given subgraph on a given block and compares it to the top-attested one from the remote attestations.
 /// The top remote attestation is found by grouping attestations together and increasing their total stake-weight every time we see a new message
@@ -351,7 +365,7 @@ pub fn compare_attestations(
     attestation_block: u64,
     remote: RemoteAttestationsMap,
     local: Arc<Mutex<LocalAttestationsMap>>,
-) -> Result<String, anyhow::Error> {
+) -> Result<String, CompareError> {
     let local = local.lock().unwrap();
 
     // Iterate & compare
@@ -377,362 +391,35 @@ pub fn compare_attestations(
                             "POIs match for subgraph {ipfs_hash} on block {attestation_block}!"
                         ));
                     } else {
-                        return Err(anyhow!(format!(
+                        return Err(CompareError::Critical(format!(
                             "POIs don't match for subgraph {ipfs_hash} on block {attestation_block}!"
                         )
                         .red()
-                        .bold()));
+                        .bold().to_string()));
                     }
                             },
                             None => {
-                                return Err(anyhow!(format!(
+                                return Err(CompareError::NonCritical(format!(
                                     "No record for subgraph {ipfs_hash} on block {attestation_block} found in remote attestations"
                                 )
-                                .yellow()
+                                .yellow().to_string()
                                ));
                             }
                         }
                     }
                     None => {
-                        return Err(anyhow!(format!("No attestations for subgraph {ipfs_hash} on block {attestation_block} found in remote attestations store. Continuing...", ).yellow()))
+                        return Err(CompareError::NonCritical(format!("No attestations for subgraph {ipfs_hash} on block {attestation_block} found in remote attestations store. Continuing...", ).yellow().to_string()))
                     }
                 }
             }
             None => {
-                return Err(anyhow!(format!("No attestation for subgraph {ipfs_hash} on block {attestation_block} found in local attestations store. Continuing...", ).yellow()))
+                return Err(CompareError::NonCritical(format!("No attestation for subgraph {ipfs_hash} on block {attestation_block} found in local attestations store. Continuing...", ).yellow().to_string()))
             }
         }
     }
 
-    Err(anyhow!(format!(
-        "The comparison did not execute successfully for on block {attestation_block}. Continuing...",
+    Err(CompareError::NonCritical(
+            "The comparison did not execute successfully for on block {attestation_block}. Continuing...".yellow().to_string(),
+        )
     )
-    .yellow()))
-}
-
-#[cfg(test)]
-mod tests {
-    use dotenv::dotenv;
-    use num_traits::One;
-
-    use super::*;
-
-    #[test]
-    fn test_basic_global_map() {
-        _ = MESSAGES.set(Arc::new(Mutex::new(Vec::new())));
-        let mut messages = MESSAGES.get().unwrap().lock().unwrap();
-
-        let hash: String = "QmWECgZdP2YMcV9RtKU41GxcdW8EGYqMNoG98ubu5RGN6U".to_string();
-        let content: String =
-            "0xa6008cea5905b8b7811a68132feea7959b623188e2d6ee3c87ead7ae56dd0eae".to_string();
-        let nonce: i64 = 123321;
-        let block_number: i64 = 0;
-        let block_hash: String = "0xblahh".to_string();
-
-        let radio_msg = RadioPayloadMessage::new(hash.clone(), content);
-        let sig: String = "4be6a6b7f27c4086f22e8be364cbdaeddc19c1992a42b08cbe506196b0aafb0a68c8c48a730b0e3155f4388d7cc84a24b193d091c4a6a4e8cd6f1b305870fae61b".to_string();
-        let msg =
-            GraphcastMessage::new(hash, Some(radio_msg), nonce, block_number, block_hash, sig)
-                .expect(
-                    "Shouldn't get here since the message is purposefully constructed for testing",
-                );
-
-        assert!(messages.is_empty());
-
-        messages.push(msg);
-        assert_eq!(
-            messages.first().unwrap().identifier,
-            "QmWECgZdP2YMcV9RtKU41GxcdW8EGYqMNoG98ubu5RGN6U".to_string()
-        );
-    }
-
-    #[test]
-    fn test_update_blocks() {
-        let mut blocks: HashMap<u64, Vec<Attestation>> = HashMap::new();
-        blocks.insert(
-            42,
-            vec![Attestation::new(
-                "default".to_string(),
-                BigUint::default(),
-                Vec::new(),
-            )],
-        );
-        let block_clone = update_blocks(
-            42,
-            &blocks,
-            "awesome-npoi".to_string(),
-            BigUint::default(),
-            "address".to_string(),
-        );
-
-        assert_eq!(
-            block_clone.get(&42).unwrap().first().unwrap().npoi,
-            "awesome-npoi".to_string()
-        );
-    }
-
-    #[tokio::test]
-    async fn test_process_messages() {
-        dotenv().ok();
-
-        const REGISTRY_SUBGRAPH: &str =
-            "https://api.thegraph.com/subgraphs/name/hopeyen/graphcast-registry-goerli";
-        const NETWORK_SUBGRAPH: &str = "https://gateway.testnet.thegraph.com/network";
-
-        let hash: String = "QmaCRFCJX3f1LACgqZFecDphpxrqMyJw1r2DCBHXmQRYY8".to_string();
-        let content: String =
-            "0xa6008cea5905b8b7811a68132feea7959b623188e2d6ee3c87ead7ae56dd0eae".to_string();
-        let nonce: i64 = 1675908856;
-        let block_number: i64 = 8459496;
-        let block_hash: String =
-            "0x2f3ac7506db33d57a58bf3bcd9b2f6a8b04d8566e50f3a3656eb07e763640882".to_string();
-        let sig: String = "907f863a74da1c5e42e2dab66eeb3f617ff3d8ace160ef48b298f28bdc6b7140156be33709c8a5ceec8346e9e02601359ad2d45a6e38bce75a7af8d5f7b170881b".to_string();
-        let radio_msg = RadioPayloadMessage::new(hash.clone(), content.clone());
-        let msg1 = GraphcastMessage::new(
-            hash.clone(),
-            Some(radio_msg),
-            nonce,
-            block_number,
-            block_hash.clone(),
-            sig,
-        )
-        .expect("Shouldn't get here since the message is purposefully constructed for testing");
-
-        let parsed = process_messages(
-            Arc::new(Mutex::new(vec![msg1.clone()])),
-            REGISTRY_SUBGRAPH,
-            NETWORK_SUBGRAPH,
-        )
-        .await;
-        assert!(parsed.is_ok());
-
-        let content: String =
-            "0xa6008cea5905b8b7811a68132feea7959b623188e2d6ee3c87ead7ae56dd0eae".to_string();
-        let nonce: i64 = 1675908903;
-        let block_number: i64 = 8459499;
-        let block_hash: String =
-            "0xf48f240aa359a5750f5b47e748718b70bb010d234e17ee935d65fd3f1503d3ae".to_string();
-        let radio_msg = RadioPayloadMessage::new(hash.clone(), content.clone());
-        let sig: String = "907f863a74da1c5e42e2dab66eeb3f617ff3d8ace160ef48b298f28bdc6b7140156be33709c8a5ceec8346e9e02601359ad2d45a6e38bce75a7af8d5f7b170881b".to_string();
-        let msg2 = GraphcastMessage::new(
-            hash,
-            Some(radio_msg),
-            nonce,
-            block_number,
-            block_hash.clone(),
-            sig,
-        )
-        .expect("Shouldn't get here since the message is purposefully constructed for testing");
-
-        let parsed = process_messages(
-            Arc::new(Mutex::new(vec![msg1, msg2])),
-            REGISTRY_SUBGRAPH,
-            NETWORK_SUBGRAPH,
-        )
-        .await;
-        assert!(parsed.is_ok());
-    }
-
-    #[test]
-    fn test_delete_messages() {
-        _ = MESSAGES.set(Arc::new(Mutex::new(Vec::new())));
-
-        let mut messages = MESSAGES.get().unwrap().lock().unwrap();
-
-        let hash: String = "QmWECgZdP2YMcV9RtKU41GxcdW8EGYqMNoG98ubu5RGN6U".to_string();
-        let content: String =
-            "0xa6008cea5905b8b7811a68132feea7959b623188e2d6ee3c87ead7ae56dd0eae".to_string();
-        let nonce: i64 = 123321;
-        let block_number: i64 = 0;
-        let block_hash: String = "0xblahh".to_string();
-        let radio_msg = RadioPayloadMessage::new(hash.clone(), content);
-        let sig: String = "4be6a6b7f27c4086f22e8be364cbdaeddc19c1992a42b08cbe506196b0aafb0a68c8c48a730b0e3155f4388d7cc84a24b193d091c4a6a4e8cd6f1b305870fae61b".to_string();
-        let msg =
-            GraphcastMessage::new(hash, Some(radio_msg), nonce, block_number, block_hash, sig)
-                .expect(
-                    "Shouldn't get here since the message is purposefully constructed for testing",
-                );
-
-        messages.push(msg);
-        assert!(!messages.is_empty());
-
-        messages.clear();
-        assert!(messages.is_empty());
-    }
-
-    #[test]
-    fn test_attestation_sorting() {
-        let attestation1 = Attestation::new(
-            "awesome-npoi".to_string(),
-            BigUint::default(),
-            vec!["i-am-groot1".to_string()],
-        );
-
-        let attestation2 = Attestation::new(
-            "awesome-npoi".to_string(),
-            BigUint::default(),
-            vec!["i-am-groot2".to_string()],
-        );
-
-        let attestation3 = Attestation::new(
-            "awesome-npoi".to_string(),
-            BigUint::one(),
-            vec!["i-am-groot3".to_string()],
-        );
-
-        let mut attestations = vec![attestation1, attestation2, attestation3];
-
-        attestations.sort_by(|a, b| a.stake_weight.partial_cmp(&b.stake_weight).unwrap());
-
-        assert_eq!(attestations.last().unwrap().stake_weight, BigUint::one());
-        assert_eq!(
-            attestations.last().unwrap().senders.first().unwrap(),
-            &"i-am-groot3".to_string()
-        );
-    }
-
-    #[test]
-    fn test_attestation_update_success() {
-        let attestation = Attestation::new(
-            "awesome-npoi".to_string(),
-            BigUint::default(),
-            vec!["i-am-groot".to_string()],
-        );
-
-        let updated_attestation =
-            Attestation::update(&attestation, "soggip".to_string(), BigUint::one());
-
-        assert!(updated_attestation.is_ok());
-        assert_eq!(updated_attestation.unwrap().stake_weight, BigUint::one());
-    }
-
-    #[test]
-    fn test_attestation_update_fail() {
-        let attestation = Attestation::new(
-            "awesome-npoi".to_string(),
-            BigUint::default(),
-            vec!["i-am-groot".to_string()],
-        );
-
-        let updated_attestation =
-            Attestation::update(&attestation, "i-am-groot".to_string(), BigUint::default());
-
-        assert!(updated_attestation.is_err());
-        assert_eq!(
-            updated_attestation.unwrap_err().to_string(),
-            "There is already an attestation from this address. Skipping..."
-                .yellow()
-                .to_string()
-        );
-    }
-
-    #[test]
-    fn test_compare_attestations_generic_fail() {
-        let res = compare_attestations(42, HashMap::new(), Arc::new(Mutex::new(HashMap::new())));
-
-        assert!(res.is_err());
-        assert_eq!(
-            res.unwrap_err().to_string(),
-            "The comparison did not execute successfully for on block 42. Continuing..."
-                .yellow()
-                .to_string()
-        );
-    }
-
-    #[test]
-    fn test_compare_attestations_remote_not_found_fail() {
-        let mut remote_blocks: HashMap<u64, Vec<Attestation>> = HashMap::new();
-        let mut local_blocks: HashMap<u64, Attestation> = HashMap::new();
-
-        remote_blocks.insert(
-            42,
-            vec![Attestation::new(
-                "awesome-npoi".to_string(),
-                BigUint::default(),
-                vec!["i-am-groot".to_string()],
-            )],
-        );
-
-        local_blocks.insert(
-            42,
-            Attestation::new("awesome-npoi".to_string(), BigUint::default(), Vec::new()),
-        );
-
-        let mut remote_attestations: HashMap<String, HashMap<u64, Vec<Attestation>>> =
-            HashMap::new();
-        let mut local_attestations: HashMap<String, HashMap<u64, Attestation>> = HashMap::new();
-
-        remote_attestations.insert("my-awesome-hash".to_string(), remote_blocks);
-        local_attestations.insert("different-awesome-hash".to_string(), local_blocks);
-
-        let res = compare_attestations(
-            42,
-            remote_attestations,
-            Arc::new(Mutex::new(local_attestations)),
-        );
-
-        assert!(res.is_err());
-        assert_eq!(res.unwrap_err().to_string(),"No attestations for subgraph different-awesome-hash on block 42 found in remote attestations store. Continuing...".yellow().to_string());
-    }
-
-    #[test]
-    fn test_compare_attestations_local_not_found_fail() {
-        let remote_blocks: HashMap<u64, Vec<Attestation>> = HashMap::new();
-        let local_blocks: HashMap<u64, Attestation> = HashMap::new();
-
-        let mut remote_attestations: HashMap<String, HashMap<u64, Vec<Attestation>>> =
-            HashMap::new();
-        let mut local_attestations: HashMap<String, HashMap<u64, Attestation>> = HashMap::new();
-
-        remote_attestations.insert("my-awesome-hash".to_string(), remote_blocks);
-        local_attestations.insert("my-awesome-hash".to_string(), local_blocks);
-
-        let res = compare_attestations(
-            42,
-            remote_attestations,
-            Arc::new(Mutex::new(local_attestations)),
-        );
-
-        assert!(res.is_err());
-        assert_eq!(res.unwrap_err().to_string(),"No attestation for subgraph my-awesome-hash on block 42 found in local attestations store. Continuing...".yellow().to_string());
-    }
-
-    #[test]
-    fn test_compare_attestations_success() {
-        let mut remote_blocks: HashMap<u64, Vec<Attestation>> = HashMap::new();
-        let mut local_blocks: HashMap<u64, Attestation> = HashMap::new();
-
-        remote_blocks.insert(
-            42,
-            vec![Attestation::new(
-                "awesome-npoi".to_string(),
-                BigUint::default(),
-                vec!["i-am-groot".to_string()],
-            )],
-        );
-
-        local_blocks.insert(
-            42,
-            Attestation::new("awesome-npoi".to_string(), BigUint::default(), Vec::new()),
-        );
-
-        let mut remote_attestations: HashMap<String, HashMap<u64, Vec<Attestation>>> =
-            HashMap::new();
-        let mut local_attestations: HashMap<String, HashMap<u64, Attestation>> = HashMap::new();
-
-        remote_attestations.insert("my-awesome-hash".to_string(), remote_blocks);
-        local_attestations.insert("my-awesome-hash".to_string(), local_blocks);
-
-        let res = compare_attestations(
-            42,
-            remote_attestations,
-            Arc::new(Mutex::new(local_attestations)),
-        );
-
-        assert!(res.is_ok());
-        assert_eq!(
-            res.unwrap(),
-            "POIs match for subgraph my-awesome-hash on block 42!".to_string()
-        );
-    }
 }

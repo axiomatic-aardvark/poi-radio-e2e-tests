@@ -3,7 +3,7 @@ use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info};
 
-use poi_radio::{BlockPointer, NetworkName, SubgraphStatus};
+use poi_radio_e2e_tests::{BlockPointer, NetworkName, SubgraphStatus};
 // Maybe later on move graphql to SDK as the queries are pretty standarded
 use graphcast_sdk::graphql::QueryError;
 
