@@ -46,7 +46,7 @@ pub fn get_random_port() -> String {
     port
 }
 
-pub async fn setup_mock_server() -> String {
+pub async fn setup_mock_server(block_number: u64) -> String {
     let mock_server = MockServer::start().await;
 
     Mock::given(method("POST"))
@@ -80,7 +80,7 @@ pub async fn setup_mock_server() -> String {
                         "stakedTokens": "100000000000000000000000",
                         "allocations": [{
                             "subgraphDeployment": {
-                                "ipfsHash": "QmbaLc7fEfLGUioKWehRhq838rRzeR8cBoapNJWNSAZE8u"
+                                "ipfsHash": "QmggQnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB"
                             }
                         }]
                     },
@@ -96,35 +96,35 @@ pub async fn setup_mock_server() -> String {
 
     Mock::given(method("POST"))
         .and(path("/graphql"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(
-            r#"{
-                "data": {
+        .respond_with(ResponseTemplate::new(200).set_body_string(format!(
+            r#"{{
+                "data": {{
                   "proofOfIndexing": "0x25331f98b82ca7f3966256bf508a7ede52e715b631dfa3d73b846bb7617f6b9e",
                   "blockHashFromNumber":"4dbba1ba9fb18b0034965712598be1368edcf91ae2c551d59462aab578dab9c5",
                   "indexingStatuses": [
-                    {
+                    {{
                       "subgraph": "QmggQnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB",
                       "synced": true,
                       "health": "healthy",
                       "fatalError": null,
                       "chains": [
-                        {
+                        {{
                           "network": "mainnet",
-                          "latestBlock": {
-                            "number": "16642242",
+                          "latestBlock": {{
+                            "number": "{}",
                             "hash": "b30395958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0a"
-                          },
-                          "chainHeadBlock": {
-                            "number": "16642242",
+                          }},
+                          "chainHeadBlock": {{
+                            "number": "{}",
                             "hash": "b30395958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0a"
-                          }
-                        }
+                          }}
+                        }}
                       ]
-                    }
+                    }}
                   ]
-                }
-              }
-              "#,
+                }}
+              }}
+              "#, block_number, block_number),
         ))
         .mount(&mock_server)
         .await;

@@ -32,7 +32,9 @@ use crate::setup::utils::{
 use super::utils::RadioRuntimeConfig;
 
 pub async fn run_test_radio(config: &RadioRuntimeConfig) {
-    let mock_server_uri = setup_mock_server().await;
+    let mut block_number = 0;
+
+    let mock_server_uri = setup_mock_server(block_number).await;
     setup_mock_env_vars(&mock_server_uri);
 
     let private_key = env::var("PRIVATE_KEY").expect("No private key provided.");
@@ -197,6 +199,8 @@ pub async fn run_test_radio(config: &RadioRuntimeConfig) {
 
             // Wait a bit before querying information on the current block
             if block_clock.current_block == message_block {
+                block_number+=1;
+                setup_mock_server(block_number).await;
                 sleep(Duration::from_secs(5));
                 continue;
             }
@@ -318,6 +322,8 @@ pub async fn run_test_radio(config: &RadioRuntimeConfig) {
             }
         }
 
+        block_number+=1;
+        setup_mock_server(block_number).await;
         sleep(Duration::from_secs(5));
         continue;
     }
