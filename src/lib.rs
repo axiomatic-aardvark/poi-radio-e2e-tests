@@ -184,7 +184,7 @@ pub static GRAPHCAST_AGENT: OnceCell<GraphcastAgent> = OnceCell::new();
 /// It is used to save incoming messages after they've been validated, in order
 /// defer their processing for later, because async code is required for the processing but
 /// it is not allowed in the handler itself.
-pub static MESSAGES: OnceCell<Arc<Mutex<Vec<GraphcastMessage<RadioPayloadMessage>>>>> =
+pub static MESSAGES: OnceCell<Arc<Mutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>> =
     OnceCell::new();
 
 /// Updates the `blocks` HashMap to include the new attestation.
@@ -221,14 +221,14 @@ pub async fn active_allocation_hashes(
 /// messages are being received. It constructs the remote attestations
 /// map and returns it if the processing succeeds.
 pub async fn process_messages(
-    messages: Arc<Mutex<Vec<GraphcastMessage<RadioPayloadMessage>>>>,
+    messages: Arc<Mutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>,
     registry_subgraph: &str,
     network_subgraph: &str,
 ) -> Result<RemoteAttestationsMap, anyhow::Error> {
     let mut remote_attestations: RemoteAttestationsMap = HashMap::new();
     let messages = AsyncMutex::new(messages.lock().unwrap());
 
-    for msg in messages.lock().await.iter() {
+    for (_, msg) in messages.lock().await.iter() {
         let radio_msg = &msg.payload.clone().unwrap();
         let sender = msg.recover_sender_address()?;
         let sender_stake = get_indexer_stake(
@@ -334,7 +334,9 @@ pub fn attestation_handler() -> impl Fn(Result<GraphcastMessage<RadioPayloadMess
 {
     |msg: Result<GraphcastMessage<RadioPayloadMessage>, anyhow::Error>| match msg {
         Ok(msg) => {
-            MESSAGES.get().unwrap().lock().unwrap().push(msg);
+            let sender = msg.recover_sender_address().unwrap();
+
+            MESSAGES.get().unwrap().lock().unwrap().push((sender, msg));
         }
         Err(err) => {
             error!("{}", err);

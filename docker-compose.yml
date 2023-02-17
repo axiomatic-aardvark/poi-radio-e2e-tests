@@ -1,6 +1,6 @@
 version: "3"
 services:
-  poi-radio:
+  poi-radio-e2e:
     build: .
-    ports:
-      - 8030:8030
+    env_file:
+    - ./.env
