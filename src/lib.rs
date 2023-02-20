@@ -180,12 +180,14 @@ pub type LocalAttestationsMap = HashMap<String, HashMap<u64, Attestation>>;
 /// per Radio instance, so that we can keep track of state and more easily test our Radio application.
 pub static GRAPHCAST_AGENT: OnceCell<GraphcastAgent> = OnceCell::new();
 
+pub type MessagesVec = OnceCell<Arc<Mutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>>;
+pub type MessagesArc = Arc<Mutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>;
+
 /// A global static (singleton) instance of A GraphcastMessage vector.
 /// It is used to save incoming messages after they've been validated, in order
 /// defer their processing for later, because async code is required for the processing but
 /// it is not allowed in the handler itself.
-pub static MESSAGES: OnceCell<Arc<Mutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>> =
-    OnceCell::new();
+pub static MESSAGES: MessagesVec = OnceCell::new();
 
 /// Updates the `blocks` HashMap to include the new attestation.
 pub fn update_blocks(
@@ -221,7 +223,7 @@ pub async fn active_allocation_hashes(
 /// messages are being received. It constructs the remote attestations
 /// map and returns it if the processing succeeds.
 pub async fn process_messages(
-    messages: Arc<Mutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>,
+    messages: MessagesArc,
     registry_subgraph: &str,
     network_subgraph: &str,
 ) -> Result<RemoteAttestationsMap, anyhow::Error> {
@@ -352,8 +354,8 @@ pub enum CompareError {
 impl std::fmt::Display for CompareError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            CompareError::Critical(msg) => write!(f, "Critical error: {}", msg),
-            CompareError::NonCritical(msg) => write!(f, "Non-critical error: {}", msg),
+            CompareError::Critical(msg) => write!(f, "Critical error: {msg}"),
+            CompareError::NonCritical(msg) => write!(f, "Non-critical error: {msg}"),
         }
     }
 }

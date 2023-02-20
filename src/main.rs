@@ -38,7 +38,7 @@ impl FromStr for Instance {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "basic" => Ok(Instance::BasicInstance),
-            _ => Err(format!("Invalid instance type: {}", s)),
+            _ => Err(format!("Invalid instance type: {s}")),
         }
     }
 }
@@ -49,7 +49,7 @@ impl FromStr for Check {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "poi_ok" => Ok(Check::PoiOk),
-            _ => Err(format!("Invalid check type: {}", s)),
+            _ => Err(format!("Invalid check type: {s}")),
         }
     }
 }
@@ -60,7 +60,7 @@ pub async fn main() {
     let args = Args::parse();
 
     if let Some(instance) = &args.instance {
-        match Instance::from_str(&instance) {
+        match Instance::from_str(instance) {
             Ok(Instance::BasicInstance) => {
                 info!("Starting basic instance");
 

@@ -1,6 +1,12 @@
 version: "3"
 services:
-  poi-radio-e2e:
+  basic-instance:
     build: .
     env_file:
-    - ./.env
+      - ./.env
+    command: [ "cargo", "run", "--", "--instance=basic" ]
+  test-check-poi-basic:
+    build: .
+    env_file:
+      - ./.env
+    command: [ "cargo", "run", "--", "--check=poi_ok" ]

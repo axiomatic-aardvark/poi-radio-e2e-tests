@@ -21,7 +21,7 @@ pub fn generate_random_address() -> String {
 
     let address_bytes = &Keccak256::digest(&public_key[1..])[12..];
 
-    info!("random address: {}", hex::encode(&address_bytes));
+    info!("random address: {}", hex::encode(address_bytes));
     format!("0x{}", hex::encode(address_bytes))
 }
 
@@ -111,11 +111,11 @@ pub async fn setup_mock_server(block_number: u64) -> String {
                         {{
                           "network": "mainnet",
                           "latestBlock": {{
-                            "number": "{}",
+                            "number": "{block_number}",
                             "hash": "b30395958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0a"
                           }},
                           "chainHeadBlock": {{
-                            "number": "{}",
+                            "number": "{block_number}",
                             "hash": "b30395958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0a"
                           }}
                         }}
@@ -124,7 +124,7 @@ pub async fn setup_mock_server(block_number: u64) -> String {
                   ]
                 }}
               }}
-              "#, block_number, block_number),
+              "#),
         ))
         .mount(&mock_server)
         .await;
@@ -155,7 +155,7 @@ pub struct RadioRuntimeConfig {
 }
 
 impl RadioRuntimeConfig {
-    pub fn default() -> Self {
+    pub fn default_config() -> Self {
         RadioRuntimeConfig {
             is_setup_instance: true,
             panic_if_poi_diverged: false,

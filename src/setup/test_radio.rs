@@ -199,7 +199,7 @@ pub async fn run_test_radio(config: &RadioRuntimeConfig) {
 
             // Wait a bit before querying information on the current block
             if block_clock.current_block == message_block {
-                block_number+=1;
+                block_number += 1;
                 setup_mock_server(block_number).await;
                 sleep(Duration::from_secs(5));
                 continue;
@@ -229,7 +229,7 @@ pub async fn run_test_radio(config: &RadioRuntimeConfig) {
                     Ok(remote_attestations) => {
                         let messages = MESSAGES.get().unwrap().lock().unwrap();
                         debug!("{:?}", messages);
-                        
+
                         match compare_attestations(
                             block_clock.compare_block - wait_block_duration,
                             remote_attestations,
@@ -322,7 +322,7 @@ pub async fn run_test_radio(config: &RadioRuntimeConfig) {
             }
         }
 
-        block_number+=1;
+        block_number += 1;
         setup_mock_server(block_number).await;
         sleep(Duration::from_secs(5));
         continue;
