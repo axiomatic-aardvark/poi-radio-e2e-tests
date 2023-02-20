@@ -46,7 +46,7 @@ pub fn get_random_port() -> String {
     port
 }
 
-pub async fn setup_mock_server(block_number: u64) -> String {
+pub async fn setup_mock_server(block_number: u64, address: &String) -> String {
     let mock_server = MockServer::start().await;
 
     Mock::given(method("POST"))
@@ -65,8 +65,8 @@ pub async fn setup_mock_server(block_number: u64) -> String {
                 "extensions": null
               }}
               "#,
-            generate_random_address(),
-            generate_random_address(),
+              address,
+              address,
         )))
         .mount(&mock_server)
         .await;

@@ -12,6 +12,8 @@ use setup::basic_instance::run_basic_instance;
 use std::str::FromStr;
 use tracing::{error, info};
 
+use crate::checks::test_num_messages::run_num_messages;
+
 #[derive(Clone, Debug)]
 enum Instance {
     BasicInstance,
@@ -20,6 +22,7 @@ enum Instance {
 #[derive(Clone, Debug)]
 enum Check {
     PoiOk,
+    NumMessages,
 }
 
 /// Simple program to greet a person
@@ -30,6 +33,8 @@ struct Args {
     instance: Option<String>,
     #[arg(short, long)]
     check: Option<String>,
+    #[arg(long)]
+    count: Option<u32>,
 }
 
 impl FromStr for Instance {
@@ -49,6 +54,7 @@ impl FromStr for Check {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "poi_ok" => Ok(Check::PoiOk),
+            "num_messages" => Ok(Check::NumMessages),
             _ => Err(format!("Invalid check type: {s}")),
         }
     }
@@ -82,6 +88,21 @@ pub async fn main() {
             })
             .join()
             .expect("Thread panicked"),
+            Ok(Check::NumMessages) => {
+                let count = args.count;
+
+                let count = count.unwrap_or_else(|| {
+                    error!("No 'count' argument provided, defaulting to '5'.");
+                    5
+                });
+
+                std::thread::spawn(move || {
+                    info!("Starting num_messages check");
+                    run_num_messages(count);
+                })
+                .join()
+                .expect("Thread panicked");
+            }
             Err(err) => error!("Error: {}", err),
         }
     }

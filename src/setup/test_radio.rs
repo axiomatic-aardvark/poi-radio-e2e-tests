@@ -10,8 +10,8 @@ use num_bigint::BigUint;
 use num_traits::Zero;
 use poi_radio_e2e_tests::{
     attestation_handler, compare_attestations, process_messages, save_local_attestation,
-    Attestation, BlockClock, BlockPointer, CompareError, LocalAttestationsMap, NetworkName,
-    RadioPayloadMessage, GRAPHCAST_AGENT, MESSAGES, NETWORKS,
+    Attestation, BlockClock, BlockPointer, CompareError, LocalAttestationsMap, MessagesArc,
+    MessagesVec, NetworkName, RadioPayloadMessage, GRAPHCAST_AGENT, MESSAGES, NETWORKS,
 };
 use rand::{thread_rng, Rng};
 use secp256k1::SecretKey;
@@ -26,15 +26,19 @@ use crate::graphql::{
     query_graph_node_network_block_hash, query_graph_node_poi, update_network_chainheads,
 };
 use crate::setup::utils::{
-    empty_attestation_handler, get_random_port, setup_mock_env_vars, setup_mock_server,
+    empty_attestation_handler, get_random_port, setup_mock_env_vars, setup_mock_server, generate_random_address,
 };
 
 use super::utils::RadioRuntimeConfig;
 
-pub async fn run_test_radio(config: &RadioRuntimeConfig) {
+pub async fn run_test_radio<F>(config: &RadioRuntimeConfig, success_handler: F)
+where
+    F: Fn(MessagesArc) -> (),
+{
     let mut block_number = 0;
+    let random_address=generate_random_address();
 
-    let mock_server_uri = setup_mock_server(block_number).await;
+    let mock_server_uri = setup_mock_server(block_number, &random_address).await;
     setup_mock_env_vars(&mock_server_uri);
 
     let private_key = env::var("PRIVATE_KEY").expect("No private key provided.");
@@ -199,8 +203,12 @@ pub async fn run_test_radio(config: &RadioRuntimeConfig) {
 
             // Wait a bit before querying information on the current block
             if block_clock.current_block == message_block {
-                block_number += 1;
-                setup_mock_server(block_number).await;
+                if block_number < 20 {
+                    block_number += 1;
+                } else {
+                    block_number = 0;
+                }
+                setup_mock_server(block_number, &random_address).await;
                 sleep(Duration::from_secs(5));
                 continue;
             }
@@ -227,9 +235,6 @@ pub async fn run_test_radio(config: &RadioRuntimeConfig) {
                 .await;
                 match remote_attestations {
                     Ok(remote_attestations) => {
-                        let messages = MESSAGES.get().unwrap().lock().unwrap();
-                        debug!("{:?}", messages);
-
                         match compare_attestations(
                             block_clock.compare_block - wait_block_duration,
                             remote_attestations,
@@ -237,10 +242,8 @@ pub async fn run_test_radio(config: &RadioRuntimeConfig) {
                         ) {
                             Ok(msg) => {
                                 debug!("{}", msg.green().bold());
-                                if messages.len() >= 10 {
-                                    info!("10 valid messages received!");
-                                    std::process::exit(0);
-                                }
+                                // TODO: Extract this to dynamic test function
+                                success_handler(Arc::clone(MESSAGES.get().unwrap()));
                             }
                             Err(err) => match err {
                                 CompareError::Critical(_) => {
@@ -322,8 +325,12 @@ pub async fn run_test_radio(config: &RadioRuntimeConfig) {
             }
         }
 
-        block_number += 1;
-        setup_mock_server(block_number).await;
+        if block_number < 20 {
+            block_number += 1;
+        } else {
+            block_number = 0;
+        }
+        setup_mock_server(block_number, &random_address).await;
         sleep(Duration::from_secs(5));
         continue;
     }

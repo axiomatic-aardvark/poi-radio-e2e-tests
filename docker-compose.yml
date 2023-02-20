@@ -5,7 +5,7 @@ services:
     env_file:
       - ./.env
     command: [ "cargo", "run", "--", "--instance=basic" ]
-  test-check-poi-basic:
+  test-check-poi-ok:
     build: .
     env_file:
       - ./.env
