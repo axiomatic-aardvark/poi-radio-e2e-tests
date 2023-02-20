@@ -26,7 +26,8 @@ use crate::graphql::{
     query_graph_node_network_block_hash, query_graph_node_poi, update_network_chainheads,
 };
 use crate::setup::utils::{
-    empty_attestation_handler, get_random_port, setup_mock_env_vars, setup_mock_server, generate_random_address,
+    empty_attestation_handler, generate_random_address, get_random_port, setup_mock_env_vars,
+    setup_mock_server,
 };
 
 use super::utils::RadioRuntimeConfig;
@@ -36,9 +37,10 @@ where
     F: Fn(MessagesArc) -> (),
 {
     let mut block_number = 0;
-    let random_address=generate_random_address();
+    let indexer_address = generate_random_address();
+    let graphcast_id = generate_random_address();
 
-    let mock_server_uri = setup_mock_server(block_number, &random_address).await;
+    let mock_server_uri = setup_mock_server(block_number, &indexer_address, &graphcast_id).await;
     setup_mock_env_vars(&mock_server_uri);
 
     let private_key = env::var("PRIVATE_KEY").expect("No private key provided.");
@@ -209,7 +211,8 @@ where
                     block_number = 0;
                     MESSAGES.get().unwrap().lock().unwrap().clear()
                 }
-                setup_mock_server(block_number, &random_address).await;
+                setup_mock_server(block_number, &indexer_address, &graphcast_id)
+                    .await;
                 sleep(Duration::from_secs(5));
                 continue;
             }
@@ -332,7 +335,7 @@ where
             block_number = 0;
             MESSAGES.get().unwrap().lock().unwrap().clear()
         }
-        setup_mock_server(block_number, &random_address).await;
+        setup_mock_server(block_number, &indexer_address, &graphcast_id).await;
         sleep(Duration::from_secs(5));
         continue;
     }

@@ -46,7 +46,11 @@ pub fn get_random_port() -> String {
     port
 }
 
-pub async fn setup_mock_server(block_number: u64, address: &String) -> String {
+pub async fn setup_mock_server(
+    block_number: u64,
+    indexer_address: &String,
+    graphcast_id: &String,
+) -> String {
     let mock_server = MockServer::start().await;
 
     Mock::given(method("POST"))
@@ -56,8 +60,8 @@ pub async fn setup_mock_server(block_number: u64, address: &String) -> String {
                 "data": {{
                   "indexers": [
                     {{
-                      "graphcastID": "{}",
-                      "id": "{}"
+                      "graphcastID": "{graphcast_id}",
+                      "id": "{indexer_address}"
                     }}
                   ]
                 }},
@@ -65,8 +69,6 @@ pub async fn setup_mock_server(block_number: u64, address: &String) -> String {
                 "extensions": null
               }}
               "#,
-              address,
-              address,
         )))
         .mount(&mock_server)
         .await;
@@ -82,7 +84,13 @@ pub async fn setup_mock_server(block_number: u64, address: &String) -> String {
                             "subgraphDeployment": {
                                 "ipfsHash": "QmggQnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB"
                             }
-                        }]
+                        },
+                        {
+                            "subgraphDeployment": {
+                                "ipfsHash": "Qm11QnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB"
+                            }
+                        }
+                        ]
                     },
                     "graphNetwork": {
                         "minimumIndexerStake": "100000000000000000000000"
@@ -120,11 +128,31 @@ pub async fn setup_mock_server(block_number: u64, address: &String) -> String {
                           }}
                         }}
                       ]
-                    }}
+                    }},
+                    {{
+                        "subgraph": "Qm11QnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB",
+                        "synced": true,
+                        "health": "healthy",
+                        "fatalError": null,
+                        "chains": [
+                          {{
+                            "network": "goerli",
+                            "latestBlock": {{
+                              "number": "{}",
+                              "hash": "b50595958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0b"
+                            }},
+                            "chainHeadBlock": {{
+                              "number": "{}",
+                              "hash": "b50595958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0b"
+                            }}
+                          }}
+                        ]
+                      }}
                   ]
                 }}
               }}
-              "#),
+              "#, block_number + 5, block_number + 5),
+              // ^ TODO: Randomize this addition number
         ))
         .mount(&mock_server)
         .await;
