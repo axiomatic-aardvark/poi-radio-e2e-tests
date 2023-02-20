@@ -207,6 +207,7 @@ where
                     block_number += 1;
                 } else {
                     block_number = 0;
+                    MESSAGES.get().unwrap().lock().unwrap().clear()
                 }
                 setup_mock_server(block_number, &random_address).await;
                 sleep(Duration::from_secs(5));
@@ -329,6 +330,7 @@ where
             block_number += 1;
         } else {
             block_number = 0;
+            MESSAGES.get().unwrap().lock().unwrap().clear()
         }
         setup_mock_server(block_number, &random_address).await;
         sleep(Duration::from_secs(5));
