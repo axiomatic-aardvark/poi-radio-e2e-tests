@@ -1,5 +1,5 @@
 use poi_radio_e2e_tests::MessagesArc;
-use tracing::{info, debug};
+use tracing::{debug, info};
 
 use crate::setup::{test_radio::run_test_radio, utils::RadioRuntimeConfig};
 

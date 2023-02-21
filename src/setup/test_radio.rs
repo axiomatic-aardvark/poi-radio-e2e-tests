@@ -11,7 +11,7 @@ use num_traits::Zero;
 use poi_radio_e2e_tests::{
     attestation_handler, compare_attestations, process_messages, save_local_attestation,
     Attestation, BlockClock, BlockPointer, CompareError, LocalAttestationsMap, MessagesArc,
-    MessagesVec, NetworkName, RadioPayloadMessage, GRAPHCAST_AGENT, MESSAGES, NETWORKS,
+    NetworkName, RadioPayloadMessage, GRAPHCAST_AGENT, MESSAGES, NETWORKS,
 };
 use rand::{thread_rng, Rng};
 use secp256k1::SecretKey;
@@ -34,7 +34,7 @@ use super::utils::RadioRuntimeConfig;
 
 pub async fn run_test_radio<F>(config: &RadioRuntimeConfig, success_handler: F)
 where
-    F: Fn(MessagesArc) -> (),
+    F: Fn(MessagesArc),
 {
     let mut block_number = 0;
     let indexer_address = generate_random_address();
@@ -81,12 +81,11 @@ where
         &registry_subgraph,
         &network_subgraph,
         read_boot_node_addresses(),
-        Some(vec![
-            "QmggQnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB".to_string()
-        ]),
+        Some("testnet"),
         None,
         None,
         Some(get_random_port()),
+        None,
         None,
     )
     .await
@@ -211,8 +210,7 @@ where
                     block_number = 0;
                     MESSAGES.get().unwrap().lock().unwrap().clear()
                 }
-                setup_mock_server(block_number, &indexer_address, &graphcast_id)
-                    .await;
+                setup_mock_server(block_number, &indexer_address, &graphcast_id).await;
                 sleep(Duration::from_secs(5));
                 continue;
             }

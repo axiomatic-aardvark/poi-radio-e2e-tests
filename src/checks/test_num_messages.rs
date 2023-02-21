@@ -6,7 +6,9 @@ use tracing::info;
 
 use crate::setup::{test_radio::run_test_radio, utils::RadioRuntimeConfig};
 
-fn deduplicate_messages(messages: &Vec<(String, GraphcastMessage<RadioPayloadMessage>)> ) -> Vec<(String, GraphcastMessage<RadioPayloadMessage>)> {
+fn deduplicate_messages(
+    messages: &[(String, GraphcastMessage<RadioPayloadMessage>)],
+) -> Vec<(String, GraphcastMessage<RadioPayloadMessage>)> {
     let mut seen_senders = HashSet::new();
     messages
         .iter()
@@ -25,12 +27,22 @@ macro_rules! success_handler_fn {
             }
 
             let messages = messages.iter().cloned().collect::<Vec<_>>();
-            let block = messages.last().expect("Message vec to not be empty").1.block_number;
-            let messages = messages.into_iter().filter(|(_, msg)| msg.block_number == block).collect::<Vec<_>>();
+            let block = messages
+                .last()
+                .expect("Message vec to not be empty")
+                .1
+                .block_number;
+            let messages = messages
+                .into_iter()
+                .filter(|(_, msg)| msg.block_number == block)
+                .collect::<Vec<_>>();
             let deduped = deduplicate_messages(&messages);
 
             let deduped_len = deduped.len() as u32;
-            assert!(deduped_len >= ($instances as f32 * 0.7) as u32, "Expected deduped arr length to be at least 70% of mock senders count.");
+            assert!(
+                deduped_len >= ($instances as f32 * 0.7) as u32,
+                "Expected deduped arr length to be at least 70% of mock senders count."
+            );
 
             info!("num_messages test is sucessfull");
             std::process::exit(0);

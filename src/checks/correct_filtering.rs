@@ -1,5 +1,5 @@
 use poi_radio_e2e_tests::MessagesArc;
-use tracing::{info, debug};
+use tracing::{debug, info};
 
 use crate::setup::{test_radio::run_test_radio, utils::RadioRuntimeConfig};
 
@@ -9,7 +9,7 @@ fn success_handler(messages: MessagesArc) {
     if messages.len() >= 10 {
         debug!("{:?}", messages);
 
-        info!("10 valid messages received!");
+        info!("10 valid messages received! Checking content topics");
         std::process::exit(0);
     }
 }
@@ -18,4 +18,6 @@ fn success_handler(messages: MessagesArc) {
 pub async fn run_correct_filtering() {
     let config = RadioRuntimeConfig::new(false, true);
     run_test_radio(&config, success_handler).await;
+
+    // Will have to run another test radio here somehow
 }

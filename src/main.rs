@@ -23,6 +23,7 @@ enum Instance {
 enum Check {
     PoiOk,
     NumMessages,
+    CorrectFiltering,
 }
 
 /// Simple program to greet a person
@@ -55,6 +56,7 @@ impl FromStr for Check {
         match s {
             "poi_ok" => Ok(Check::PoiOk),
             "num_messages" => Ok(Check::NumMessages),
+            "correct_filtering" => Ok(Check::CorrectFiltering),
             _ => Err(format!("Invalid check type: {s}")),
         }
     }
@@ -103,6 +105,12 @@ pub async fn main() {
                 .join()
                 .expect("Thread panicked");
             }
+            Ok(Check::CorrectFiltering) => std::thread::spawn(|| {
+                info!("Starting correct_filtering check");
+                run_poi_ok();
+            })
+            .join()
+            .expect("Thread panicked"),
             Err(err) => error!("Error: {}", err),
         }
     }
