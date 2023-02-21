@@ -4,14 +4,15 @@ use ethers::signers::LocalWallet;
 use graphcast_sdk::graphcast_agent::GraphcastAgent;
 use graphcast_sdk::graphql::client_network::query_network_subgraph;
 use graphcast_sdk::graphql::client_registry::query_registry_indexer;
-use graphcast_sdk::{graphcast_id_address, read_boot_node_addresses};
+use graphcast_sdk::{graphcast_id_address, read_boot_node_addresses, NetworkName};
 use hex::encode;
 use num_bigint::BigUint;
 use num_traits::Zero;
+use partial_application::partial;
 use poi_radio_e2e_tests::{
     attestation_handler, compare_attestations, process_messages, save_local_attestation,
     Attestation, BlockClock, BlockPointer, CompareError, LocalAttestationsMap, MessagesArc,
-    NetworkName, RadioPayloadMessage, GRAPHCAST_AGENT, MESSAGES, NETWORKS,
+    RadioPayloadMessage, GRAPHCAST_AGENT, MESSAGES, NETWORKS,
 };
 use rand::{thread_rng, Rng};
 use secp256k1::SecretKey;
@@ -22,9 +23,7 @@ use std::{thread::sleep, time::Duration};
 use tracing::log::warn;
 use tracing::{debug, error, info};
 
-use crate::graphql::{
-    query_graph_node_network_block_hash, query_graph_node_poi, update_network_chainheads,
-};
+use crate::graphql::{query_graph_node_poi, update_network_chainheads};
 use crate::setup::utils::{
     empty_attestation_handler, generate_random_address, get_random_port, setup_mock_env_vars,
     setup_mock_server,
@@ -50,7 +49,6 @@ where
         env::var("NETWORK_SUBGRAPH_ENDPOINT").expect("No network subgraph endpoint provided.");
     let graph_node_endpoint =
         env::var("GRAPH_NODE_STATUS_ENDPOINT").expect("No Graph node status endpoint provided.");
-    let eth_node = env::var("ETH_NODE").expect("No ETH URL provided.");
 
     // Send message every x blocks for which wait y blocks before attestations
     let wait_block_duration = 2;
@@ -76,16 +74,19 @@ where
 
     let graphcast_agent = GraphcastAgent::new(
         private_key,
-        eth_node,
         radio_name,
         &registry_subgraph,
         &network_subgraph,
+        &graph_node_endpoint,
         read_boot_node_addresses(),
         Some("testnet"),
+        vec![
+            "QmggQnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB".to_string(),
+            "Qm11QnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB".to_string(),
+        ],
         None,
         None,
         Some(get_random_port()),
-        None,
         None,
     )
     .await
@@ -215,19 +216,24 @@ where
                 continue;
             }
 
-            debug!("{} {}", "🔗 MSG Block number:".cyan(), message_block);
-            block_clock.current_block = latest_block.number;
-
-            debug!("{} {}", "🔗 CURRENT:".cyan(), block_clock.current_block);
-            debug!("{} {}", "🔗 latest_block:".cyan(), latest_block.number);
             debug!(
-                "{} {}",
-                "🔗 COMPARE block:".cyan(),
+                "{} {} {} {} {} {} {} {}",
+                "🔗 Message block: ".cyan(),
+                message_block,
+                "🔗 Current block from block clock: ".cyan(),
+                block_clock.current_block,
+                "🔗 Latest block: ".cyan(),
+                latest_block.number,
+                "🔗 Compare block: ".cyan(),
                 block_clock.compare_block
             );
 
-            if latest_block.number == block_clock.compare_block && !config.is_setup_instance {
+            block_clock.current_block = latest_block.number;
+
+            if block_clock.compare_block != 0 && latest_block.number >= block_clock.compare_block {
                 debug!("{}", "Comparing attestations".magenta());
+
+                debug!("{}{:?}", "Messages: ".magenta(), MESSAGES);
 
                 let remote_attestations = process_messages(
                     Arc::clone(MESSAGES.get().unwrap()),
@@ -244,7 +250,6 @@ where
                         ) {
                             Ok(msg) => {
                                 debug!("{}", msg.green().bold());
-                                // TODO: Extract this to dynamic test function
                                 success_handler(Arc::clone(MESSAGES.get().unwrap()));
                             }
                             Err(err) => match err {
@@ -278,16 +283,13 @@ where
                 "Checking latest block number and the message block: {0} >?= {message_block}",
                 latest_block.number
             );
-
             if latest_block.number >= message_block {
                 block_clock.compare_block = message_block + wait_block_duration;
-                // block number and hash can actually be queried from graph node, but need a deterministic consensus on block number
-                let block_hash = match query_graph_node_network_block_hash(
-                    graph_node_endpoint.clone(),
-                    network_name.to_string().to_lowercase(),
-                    message_block.try_into().unwrap(),
-                )
-                .await
+                let block_hash = match GRAPHCAST_AGENT
+                    .get()
+                    .unwrap()
+                    .get_block_hash(network_name.to_string(), message_block)
+                    .await
                 {
                     Ok(hash) => hash,
                     Err(e) => {
@@ -296,7 +298,7 @@ where
                     }
                 };
 
-                match poi_query(block_hash, message_block.try_into().unwrap()).await {
+                match poi_query(block_hash.clone(), message_block.try_into().unwrap()).await {
                     Ok(content) => {
                         let attestation = Attestation {
                             npoi: content.clone(),
@@ -315,7 +317,12 @@ where
                         match GRAPHCAST_AGENT
                             .get()
                             .unwrap()
-                            .send_message(id.clone(), message_block, Some(radio_message))
+                            .send_message(
+                                id.clone(),
+                                network_name,
+                                message_block,
+                                Some(radio_message),
+                            )
                             .await
                         {
                             Ok(sent) => info!("{}: {}", "Sent message id".green(), sent),

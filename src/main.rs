@@ -2,9 +2,6 @@ pub mod checks;
 mod graphql;
 pub mod setup;
 
-#[macro_use]
-extern crate partial_application;
-
 use checks::test_poi_ok::run_poi_ok;
 use clap::Parser;
 use graphcast_sdk::init_tracing;
@@ -12,7 +9,9 @@ use setup::basic_instance::run_basic_instance;
 use std::str::FromStr;
 use tracing::{error, info};
 
-use crate::checks::test_num_messages::run_num_messages;
+use crate::checks::{
+    correct_filtering::run_correct_filtering, test_num_messages::run_num_messages,
+};
 
 #[derive(Clone, Debug)]
 enum Instance {
@@ -107,7 +106,7 @@ pub async fn main() {
             }
             Ok(Check::CorrectFiltering) => std::thread::spawn(|| {
                 info!("Starting correct_filtering check");
-                run_poi_ok();
+                run_correct_filtering();
             })
             .join()
             .expect("Thread panicked"),
