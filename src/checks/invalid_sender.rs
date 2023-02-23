@@ -1,17 +1,14 @@
 use colored::Colorize;
 use poi_radio_e2e_tests::MessagesArc;
-use tracing::{debug, info};
+use tracing::info;
 
 use crate::setup::{test_radio::run_test_radio, utils::RadioRuntimeConfig};
 
 fn success_handler(messages: MessagesArc) {
     let messages = messages.lock().unwrap();
 
-    if messages.len() >= 5 {
-        debug!("{:?}", messages);
-
-        info!("5 valid messages received!");
-        info!("{}", "poi_ok test is sucessful ✅".green());
+    if messages.len() == 0 {
+        info!("{}", "invalid_sender test is sucessful ✅".green());
         std::process::exit(0);
     }
 }

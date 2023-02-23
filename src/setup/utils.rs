@@ -52,7 +52,7 @@ pub async fn setup_mock_server(
     graphcast_id: &String,
     ipfs_hashes: &[String],
     staked_tokens: &String,
-    poi: &String
+    poi: &String,
 ) -> String {
     let mock_server = MockServer::start().await;
 
@@ -189,8 +189,7 @@ pub struct RadioRuntimeConfig {
     pub indexer_stake: String,
     pub poi: String,
     pub indexer_address: Option<String>,
-    pub operator_address: Option<String>
-
+    pub operator_address: Option<String>,
 }
 
 impl RadioRuntimeConfig {
@@ -205,10 +204,7 @@ impl RadioRuntimeConfig {
             operator_address: None,
         }
     }
-    pub fn new(
-        is_setup_instance: bool,
-        panic_if_poi_diverged: bool,
-    ) -> Self {
+    pub fn new(is_setup_instance: bool, panic_if_poi_diverged: bool) -> Self {
         RadioRuntimeConfig {
             is_setup_instance,
             panic_if_poi_diverged,

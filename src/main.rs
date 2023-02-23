@@ -9,11 +9,11 @@ use setup::basic_instance::run_basic_instance;
 use std::str::FromStr;
 use tracing::{error, info};
 
-use crate::{checks::{
+use crate::checks::{
     correct_filtering_default_topics::run_correct_filtering_default_topics,
     correct_filtering_different_topics::run_correct_filtering_different_topics,
-    test_num_messages::run_num_messages, invalid_sender::run_invalid_sender,
-}};
+    invalid_sender::run_invalid_sender, test_num_messages::run_num_messages,
+};
 
 #[derive(Clone, Debug)]
 enum Instance {
@@ -26,7 +26,7 @@ enum Check {
     NumMessages,
     CorrectFilteringDefaultTopics,
     CorrectFilteringDifferentTopics,
-    InvalidSender
+    InvalidSender,
 }
 
 /// Simple program to greet a person

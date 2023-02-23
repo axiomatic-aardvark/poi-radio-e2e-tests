@@ -273,6 +273,8 @@ where
                 .await;
                 match remote_attestations {
                     Ok(remote_attestations) => {
+                        success_handler(Arc::clone(MESSAGES.get().unwrap()));
+
                         match compare_attestations(
                             block_clock.compare_block - wait_block_duration,
                             remote_attestations,
@@ -280,7 +282,6 @@ where
                         ) {
                             Ok(msg) => {
                                 debug!("{}", msg.green().bold());
-                                success_handler(Arc::clone(MESSAGES.get().unwrap()));
                             }
                             Err(err) => match err {
                                 CompareError::Critical(_) => {
