@@ -1,3 +1,4 @@
+use colored::Colorize;
 use poi_radio_e2e_tests::MessagesArc;
 use tracing::{debug, info};
 
@@ -10,12 +11,13 @@ fn success_handler(messages: MessagesArc) {
         debug!("{:?}", messages);
 
         info!("10 valid messages received!");
+        info!("{}", "poi_ok test is sucessful ✅".green());
         std::process::exit(0);
     }
 }
 
 #[tokio::main]
 pub async fn run_poi_ok() {
-    let config = RadioRuntimeConfig::new(false, true);
+    let config = RadioRuntimeConfig::new(false, true, None);
     run_test_radio(&config, success_handler).await;
 }

@@ -24,6 +24,7 @@ use tracing::log::warn;
 use tracing::{debug, error, info};
 
 use crate::graphql::{query_graph_node_poi, update_network_chainheads};
+use crate::setup::constants::{MOCK_SUBGRAPH_GOERLI, MOCK_SUBGRAPH_MAINNET};
 use crate::setup::utils::{
     empty_attestation_handler, generate_random_address, get_random_port, setup_mock_env_vars,
     setup_mock_server,
@@ -39,7 +40,16 @@ where
     let indexer_address = generate_random_address();
     let graphcast_id = generate_random_address();
 
-    let mock_server_uri = setup_mock_server(block_number, &indexer_address, &graphcast_id).await;
+    let mock_server_uri = setup_mock_server(
+        block_number,
+        &indexer_address,
+        &graphcast_id,
+        &config.subgraphs.clone().unwrap_or(vec![
+            MOCK_SUBGRAPH_MAINNET.to_string(),
+            MOCK_SUBGRAPH_GOERLI.to_string(),
+        ]),
+    )
+    .await;
     setup_mock_env_vars(&mock_server_uri);
 
     let private_key = env::var("PRIVATE_KEY").expect("No private key provided.");
@@ -80,10 +90,10 @@ where
         &graph_node_endpoint,
         read_boot_node_addresses(),
         Some("testnet"),
-        vec![
-            "QmggQnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB".to_string(),
-            "Qm11QnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB".to_string(),
-        ],
+        config.subgraphs.clone().unwrap_or(vec![
+            MOCK_SUBGRAPH_MAINNET.to_string(),
+            MOCK_SUBGRAPH_GOERLI.to_string(),
+        ]),
         None,
         None,
         Some(get_random_port()),
@@ -211,7 +221,16 @@ where
                     block_number = 0;
                     MESSAGES.get().unwrap().lock().unwrap().clear()
                 }
-                setup_mock_server(block_number, &indexer_address, &graphcast_id).await;
+                setup_mock_server(
+                    block_number,
+                    &indexer_address,
+                    &graphcast_id,
+                    &config.subgraphs.clone().unwrap_or(vec![
+                        MOCK_SUBGRAPH_MAINNET.to_string(),
+                        MOCK_SUBGRAPH_GOERLI.to_string(),
+                    ]),
+                )
+                .await;
                 sleep(Duration::from_secs(5));
                 continue;
             }
@@ -340,7 +359,16 @@ where
             block_number = 0;
             MESSAGES.get().unwrap().lock().unwrap().clear()
         }
-        setup_mock_server(block_number, &indexer_address, &graphcast_id).await;
+        setup_mock_server(
+            block_number,
+            &indexer_address,
+            &graphcast_id,
+            &config.subgraphs.clone().unwrap_or(vec![
+                MOCK_SUBGRAPH_MAINNET.to_string(),
+                MOCK_SUBGRAPH_GOERLI.to_string(),
+            ]),
+        )
+        .await;
         sleep(Duration::from_secs(5));
         continue;
     }

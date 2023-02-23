@@ -1,21 +1,9 @@
-use std::collections::HashSet;
-
-use graphcast_sdk::graphcast_agent::message_typing::GraphcastMessage;
-use poi_radio_e2e_tests::{MessagesArc, RadioPayloadMessage};
+use crate::checks::deduplicate_messages;
+use colored::Colorize;
+use poi_radio_e2e_tests::MessagesArc;
 use tracing::info;
 
 use crate::setup::{test_radio::run_test_radio, utils::RadioRuntimeConfig};
-
-fn deduplicate_messages(
-    messages: &[(String, GraphcastMessage<RadioPayloadMessage>)],
-) -> Vec<(String, GraphcastMessage<RadioPayloadMessage>)> {
-    let mut seen_senders = HashSet::new();
-    messages
-        .iter()
-        .filter(|(sender, _)| seen_senders.insert(sender.clone()))
-        .cloned()
-        .collect()
-}
 
 macro_rules! success_handler_fn {
     ($instances:expr) => {
@@ -44,7 +32,7 @@ macro_rules! success_handler_fn {
                 "Expected deduped arr length to be at least 70% of mock senders count."
             );
 
-            info!("num_messages test is sucessfull");
+            info!("{}", "num_messages test is sucessful ✅".green());
             std::process::exit(0);
         }
     };
@@ -52,6 +40,6 @@ macro_rules! success_handler_fn {
 
 #[tokio::main]
 pub async fn run_num_messages(count: u32) {
-    let config = RadioRuntimeConfig::new(false, true);
+    let config = RadioRuntimeConfig::new(false, true, None);
     run_test_radio(&config, success_handler_fn!(count)).await;
 }

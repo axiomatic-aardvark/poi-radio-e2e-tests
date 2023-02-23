@@ -10,7 +10,9 @@ use std::str::FromStr;
 use tracing::{error, info};
 
 use crate::checks::{
-    correct_filtering::run_correct_filtering, test_num_messages::run_num_messages,
+    correct_filtering_default_topics::run_correct_filtering_default_topics,
+    correct_filtering_different_topics::run_correct_filtering_different_topics,
+    test_num_messages::run_num_messages,
 };
 
 #[derive(Clone, Debug)]
@@ -22,7 +24,8 @@ enum Instance {
 enum Check {
     PoiOk,
     NumMessages,
-    CorrectFiltering,
+    CorrectFilteringDefaultTopics,
+    CorrectFilteringDifferentTopics,
 }
 
 /// Simple program to greet a person
@@ -55,7 +58,8 @@ impl FromStr for Check {
         match s {
             "poi_ok" => Ok(Check::PoiOk),
             "num_messages" => Ok(Check::NumMessages),
-            "correct_filtering" => Ok(Check::CorrectFiltering),
+            "correct_filtering_default_topics" => Ok(Check::CorrectFilteringDefaultTopics),
+            "correct_filtering_different_topics" => Ok(Check::CorrectFilteringDifferentTopics),
             _ => Err(format!("Invalid check type: {s}")),
         }
     }
@@ -104,9 +108,15 @@ pub async fn main() {
                 .join()
                 .expect("Thread panicked");
             }
-            Ok(Check::CorrectFiltering) => std::thread::spawn(|| {
-                info!("Starting correct_filtering check");
-                run_correct_filtering();
+            Ok(Check::CorrectFilteringDefaultTopics) => std::thread::spawn(|| {
+                info!("Starting correct_filtering_default_topics check");
+                run_correct_filtering_default_topics();
+            })
+            .join()
+            .expect("Thread panicked"),
+            Ok(Check::CorrectFilteringDifferentTopics) => std::thread::spawn(|| {
+                info!("Starting correct_filtering_different_topics check");
+                run_correct_filtering_different_topics();
             })
             .join()
             .expect("Thread panicked"),

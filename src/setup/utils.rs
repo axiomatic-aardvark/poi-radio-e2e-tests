@@ -50,6 +50,7 @@ pub async fn setup_mock_server(
     block_number: u64,
     indexer_address: &String,
     graphcast_id: &String,
+    ipfs_hashes: &[String],
 ) -> String {
     let mock_server = MockServer::start().await;
 
@@ -69,36 +70,38 @@ pub async fn setup_mock_server(
                 "extensions": null
               }}
               "#,
+            graphcast_id = graphcast_id,
+            indexer_address = indexer_address,
         )))
         .mount(&mock_server)
         .await;
 
+    let mut allocations_str = String::new();
+    for ipfs_hash in ipfs_hashes {
+        allocations_str.push_str(&format!(
+            r#"{{"subgraphDeployment": {{"ipfsHash": "{}"}}}},"#,
+            ipfs_hash
+        ));
+    }
+
     Mock::given(method("POST"))
         .and(path("/network-subgraph"))
-        .respond_with(ResponseTemplate::new(200).set_body_string(
-            r#"{
-                "data": {
-                    "indexer" : {
+        .respond_with(ResponseTemplate::new(200).set_body_string(format!(
+            r#"{{
+                "data": {{
+                    "indexer" : {{
                         "stakedTokens": "100000000000000000000000",
-                        "allocations": [{
-                            "subgraphDeployment": {
-                                "ipfsHash": "QmggQnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB"
-                            }
-                        },
-                        {
-                            "subgraphDeployment": {
-                                "ipfsHash": "Qm11QnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB"
-                            }
-                        }
+                        "allocations": [{}
                         ]
-                    },
-                    "graphNetwork": {
+                    }},
+                    "graphNetwork": {{
                         "minimumIndexerStake": "100000000000000000000000"
-                    }
-                },
+                    }}
+                }},
                 "errors": null
-            }"#,
-        ))
+            }}"#,
+            allocations_str.trim_end_matches(','),
+        )))
         .mount(&mock_server)
         .await;
 
@@ -111,7 +114,7 @@ pub async fn setup_mock_server(
                   "blockHashFromNumber":"4dbba1ba9fb18b0034965712598be1368edcf91ae2c551d59462aab578dab9c5",
                   "indexingStatuses": [
                     {{
-                      "subgraph": "QmggQnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB",
+                      "subgraph": "{}",
                       "synced": true,
                       "health": "healthy",
                       "fatalError": null,
@@ -130,7 +133,7 @@ pub async fn setup_mock_server(
                       ]
                     }},
                     {{
-                        "subgraph": "Qm11QnSgia4iDPWHpeY6aWxesRFdb8o5DKZUx96zZqEWrB",
+                        "subgraph": "{}",
                         "synced": true,
                         "health": "healthy",
                         "fatalError": null,
@@ -138,22 +141,22 @@ pub async fn setup_mock_server(
                           {{
                             "network": "goerli",
                             "latestBlock": {{
-                              "number": "{}",
-                              "hash": "b50595958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0b"
-                            }},
-                            "chainHeadBlock": {{
-                              "number": "{}",
-                              "hash": "b50595958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0b"
-                            }}
+                                "number": "{}",
+                                "hash": "b30395958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0a"
+                              }},
+                              "chainHeadBlock": {{
+                                "number": "{}",
+                                "hash": "b30395958a317ccc06da46782f660ce674cbe6792e5573dc630978c506114a0a"
+                              }}
                           }}
                         ]
                       }}
                   ]
                 }}
               }}
-              "#, block_number + 5, block_number + 5),
-              // ^ TODO: Randomize this addition number
-        ))
+              "#,
+              ipfs_hashes[0], ipfs_hashes[1], block_number + 5, block_number + 5, // use the provided ipfs hashes
+            )))
         .mount(&mock_server)
         .await;
 
@@ -180,6 +183,7 @@ pub fn setup_mock_env_vars(mock_server_uri: &String) {
 pub struct RadioRuntimeConfig {
     pub is_setup_instance: bool,
     pub panic_if_poi_diverged: bool,
+    pub subgraphs: Option<Vec<String>>,
 }
 
 impl RadioRuntimeConfig {
@@ -187,12 +191,18 @@ impl RadioRuntimeConfig {
         RadioRuntimeConfig {
             is_setup_instance: true,
             panic_if_poi_diverged: false,
+            subgraphs: None,
         }
     }
-    pub fn new(is_setup_instance: bool, panic_if_poi_diverged: bool) -> Self {
+    pub fn new(
+        is_setup_instance: bool,
+        panic_if_poi_diverged: bool,
+        subgraphs: Option<Vec<String>>,
+    ) -> Self {
         RadioRuntimeConfig {
             is_setup_instance,
             panic_if_poi_diverged,
+            subgraphs,
         }
     }
 }
