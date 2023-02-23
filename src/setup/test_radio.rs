@@ -89,7 +89,7 @@ where
         &network_subgraph,
         &graph_node_endpoint,
         read_boot_node_addresses(),
-        Some("testnet"),
+        Some("5"),
         config.subgraphs.clone().unwrap_or(vec![
             MOCK_SUBGRAPH_MAINNET.to_string(),
             MOCK_SUBGRAPH_GOERLI.to_string(),
