@@ -51,6 +51,8 @@ pub async fn setup_mock_server(
     indexer_address: &String,
     graphcast_id: &String,
     ipfs_hashes: &[String],
+    staked_tokens: &String,
+    poi: &String
 ) -> String {
     let mock_server = MockServer::start().await;
 
@@ -90,7 +92,7 @@ pub async fn setup_mock_server(
             r#"{{
                 "data": {{
                     "indexer" : {{
-                        "stakedTokens": "100000000000000000000000",
+                        "stakedTokens": "{staked_tokens}",
                         "allocations": [{}
                         ]
                     }},
@@ -110,7 +112,7 @@ pub async fn setup_mock_server(
         .respond_with(ResponseTemplate::new(200).set_body_string(format!(
             r#"{{
                 "data": {{
-                  "proofOfIndexing": "0x25331f98b82ca7f3966256bf508a7ede52e715b631dfa3d73b846bb7617f6b9e",
+                  "proofOfIndexing": "{poi}",
                   "blockHashFromNumber":"4dbba1ba9fb18b0034965712598be1368edcf91ae2c551d59462aab578dab9c5",
                   "indexingStatuses": [
                     {{
@@ -184,6 +186,11 @@ pub struct RadioRuntimeConfig {
     pub is_setup_instance: bool,
     pub panic_if_poi_diverged: bool,
     pub subgraphs: Option<Vec<String>>,
+    pub indexer_stake: String,
+    pub poi: String,
+    pub indexer_address: Option<String>,
+    pub operator_address: Option<String>
+
 }
 
 impl RadioRuntimeConfig {
@@ -192,17 +199,24 @@ impl RadioRuntimeConfig {
             is_setup_instance: true,
             panic_if_poi_diverged: false,
             subgraphs: None,
+            indexer_stake: "100000000000000000000000".to_string(),
+            poi: "0x25331f98b82ca7f3966256bf508a7ede52e715b631dfa3d73b846bb7617f6b9e".to_string(),
+            indexer_address: None,
+            operator_address: None,
         }
     }
     pub fn new(
         is_setup_instance: bool,
         panic_if_poi_diverged: bool,
-        subgraphs: Option<Vec<String>>,
     ) -> Self {
         RadioRuntimeConfig {
             is_setup_instance,
             panic_if_poi_diverged,
-            subgraphs,
+            subgraphs: None,
+            indexer_stake: "100000000000000000000000".to_string(),
+            poi: "0x25331f98b82ca7f3966256bf508a7ede52e715b631dfa3d73b846bb7617f6b9e".to_string(),
+            indexer_address: None,
+            operator_address: None,
         }
     }
 }

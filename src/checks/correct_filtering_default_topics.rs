@@ -37,6 +37,9 @@ fn success_handler(messages: MessagesArc) {
 
 #[tokio::main]
 pub async fn run_correct_filtering_default_topics() {
-    let config = RadioRuntimeConfig::new(false, true, None);
+    let config = RadioRuntimeConfig::new(
+        false,
+        true,
+    );
     run_test_radio(&config, success_handler).await;
 }

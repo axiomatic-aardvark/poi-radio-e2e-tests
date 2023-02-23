@@ -9,11 +9,11 @@ use setup::basic_instance::run_basic_instance;
 use std::str::FromStr;
 use tracing::{error, info};
 
-use crate::checks::{
+use crate::{checks::{
     correct_filtering_default_topics::run_correct_filtering_default_topics,
     correct_filtering_different_topics::run_correct_filtering_different_topics,
-    test_num_messages::run_num_messages,
-};
+    test_num_messages::run_num_messages, invalid_sender::run_invalid_sender,
+}};
 
 #[derive(Clone, Debug)]
 enum Instance {
@@ -26,6 +26,7 @@ enum Check {
     NumMessages,
     CorrectFilteringDefaultTopics,
     CorrectFilteringDifferentTopics,
+    InvalidSender
 }
 
 /// Simple program to greet a person
@@ -60,6 +61,7 @@ impl FromStr for Check {
             "num_messages" => Ok(Check::NumMessages),
             "correct_filtering_default_topics" => Ok(Check::CorrectFilteringDefaultTopics),
             "correct_filtering_different_topics" => Ok(Check::CorrectFilteringDifferentTopics),
+            "invalid_sender" => Ok(Check::InvalidSender),
             _ => Err(format!("Invalid check type: {s}")),
         }
     }
@@ -117,6 +119,12 @@ pub async fn main() {
             Ok(Check::CorrectFilteringDifferentTopics) => std::thread::spawn(|| {
                 info!("Starting correct_filtering_different_topics check");
                 run_correct_filtering_different_topics();
+            })
+            .join()
+            .expect("Thread panicked"),
+            Ok(Check::InvalidSender) => std::thread::spawn(|| {
+                info!("Starting invalid_sender check");
+                run_invalid_sender();
             })
             .join()
             .expect("Thread panicked"),

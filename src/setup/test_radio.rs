@@ -37,8 +37,15 @@ where
     F: Fn(MessagesArc),
 {
     let mut block_number = 0;
-    let indexer_address = generate_random_address();
-    let graphcast_id = generate_random_address();
+    let indexer_address = config
+        .indexer_address
+        .clone()
+        .unwrap_or(generate_random_address());
+
+    let graphcast_id = config
+        .operator_address
+        .clone()
+        .unwrap_or(generate_random_address());
 
     let mock_server_uri = setup_mock_server(
         block_number,
@@ -48,6 +55,8 @@ where
             MOCK_SUBGRAPH_MAINNET.to_string(),
             MOCK_SUBGRAPH_GOERLI.to_string(),
         ]),
+        &config.indexer_stake,
+        &config.poi,
     )
     .await;
     setup_mock_env_vars(&mock_server_uri);
@@ -229,6 +238,8 @@ where
                         MOCK_SUBGRAPH_MAINNET.to_string(),
                         MOCK_SUBGRAPH_GOERLI.to_string(),
                     ]),
+                    &config.indexer_stake,
+                    &config.poi,
                 )
                 .await;
                 sleep(Duration::from_secs(5));
@@ -333,6 +344,12 @@ where
                         );
 
                         let radio_message = RadioPayloadMessage::new(id.clone(), content.clone());
+                        info!(
+                            "{}: {:?}",
+                            "Attempting to send message".magenta(),
+                            radio_message
+                        );
+
                         match GRAPHCAST_AGENT
                             .get()
                             .unwrap()
@@ -344,7 +361,9 @@ where
                             )
                             .await
                         {
-                            Ok(sent) => info!("{}: {}", "Sent message id".green(), sent),
+                            Ok(sent) => {
+                                info!("{}: {}", "Sent message id".green(), sent);
+                            }
                             Err(e) => error!("{}: {}", "Failed to send message".red(), e),
                         };
                     }
@@ -367,6 +386,8 @@ where
                 MOCK_SUBGRAPH_MAINNET.to_string(),
                 MOCK_SUBGRAPH_GOERLI.to_string(),
             ]),
+            &config.indexer_stake,
+            &config.poi,
         )
         .await;
         sleep(Duration::from_secs(5));

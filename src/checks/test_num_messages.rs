@@ -36,6 +36,6 @@ fn handler(count: u32, messages: MessagesArc) {
 
 #[tokio::main]
 pub async fn run_num_messages(count: u32) {
-    let config = RadioRuntimeConfig::new(false, true, None);
+    let config = RadioRuntimeConfig::new(false, true);
     run_test_radio(&config, partial!(handler => count, _)).await;
 }

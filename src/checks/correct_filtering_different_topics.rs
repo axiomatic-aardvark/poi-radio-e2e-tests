@@ -45,6 +45,7 @@ pub async fn run_correct_filtering_different_topics() {
         MOCK_SUBGRAPH_MAINNET.to_string(),
         MOCK_SUBGRAPH_GOERLI_2.to_string(),
     ];
-    let config = RadioRuntimeConfig::new(false, true, Some(subgraphs));
+    let mut config = RadioRuntimeConfig::new(false, true);
+    config.subgraphs = Some(subgraphs);
     run_test_radio(&config, success_handler).await;
 }

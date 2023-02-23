@@ -7,6 +7,7 @@ pub mod correct_filtering_default_topics;
 pub mod correct_filtering_different_topics;
 pub mod test_num_messages;
 pub mod test_poi_ok;
+pub mod invalid_sender;
 
 pub fn deduplicate_messages(
     messages: &[(String, GraphcastMessage<RadioPayloadMessage>)],
