@@ -18,8 +18,9 @@ use rand::{thread_rng, Rng};
 use secp256k1::SecretKey;
 use std::collections::HashMap;
 use std::env;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as SyncMutex};
 use std::{thread::sleep, time::Duration};
+use tokio::sync::Mutex as AsyncMutex;
 use tracing::log::warn;
 use tracing::{debug, error, info};
 
@@ -112,25 +113,26 @@ where
     .unwrap();
 
     _ = GRAPHCAST_AGENT.set(graphcast_agent);
-    _ = MESSAGES.set(Arc::new(Mutex::new(vec![])));
+    _ = MESSAGES.set(Arc::new(SyncMutex::new(vec![])));
 
     if config.is_setup_instance {
         GRAPHCAST_AGENT
             .get()
             .unwrap()
-            .register_handler(Arc::new(Mutex::new(empty_attestation_handler())))
+            .register_handler(Arc::new(AsyncMutex::new(empty_attestation_handler())))
             .expect("Could not register handler");
     } else {
         GRAPHCAST_AGENT
             .get()
             .unwrap()
-            .register_handler(Arc::new(Mutex::new(attestation_handler())))
+            .register_handler(Arc::new(AsyncMutex::new(attestation_handler())))
             .expect("Could not register handler");
     };
 
     let mut block_store: HashMap<NetworkName, BlockClock> = HashMap::new();
     let mut network_chainhead_blocks: HashMap<NetworkName, BlockPointer> = HashMap::new();
-    let local_attestations: Arc<Mutex<LocalAttestationsMap>> = Arc::new(Mutex::new(HashMap::new()));
+    let local_attestations: Arc<AsyncMutex<LocalAttestationsMap>> =
+        Arc::new(AsyncMutex::new(HashMap::new()));
 
     let my_stake = if let Some(addr) = my_address.clone() {
         query_network_subgraph(network_subgraph.to_string(), addr)
@@ -172,7 +174,7 @@ where
         // Function takes in an identifier string and make specific queries regarding the identifier
         // The example here combines a single function provided query endpoint, current block info based on the subgraph's indexing network
         // Then the function gets sent to agent for making identifier independent queries
-        let identifiers = GRAPHCAST_AGENT.get().unwrap().content_identifiers();
+        let identifiers = GRAPHCAST_AGENT.get().unwrap().content_identifiers().await;
 
         info!("debugging with style {:?}", subgraph_network_latest_blocks);
 
@@ -279,7 +281,9 @@ where
                             block_clock.compare_block - wait_block_duration,
                             remote_attestations,
                             Arc::clone(&local_attestations),
-                        ) {
+                        )
+                        .await
+                        {
                             Ok(msg) => {
                                 debug!("{}", msg.green().bold());
                             }
@@ -338,7 +342,7 @@ where
                         };
 
                         save_local_attestation(
-                            &mut local_attestations.lock().unwrap(),
+                            &mut *local_attestations.lock().await,
                             attestation,
                             id.clone(),
                             message_block,

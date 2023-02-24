@@ -12,7 +12,7 @@ use std::fmt;
 use std::{
     collections::HashMap,
     error::Error,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex as SyncMutex},
 };
 use tokio::sync::Mutex as AsyncMutex;
 use tracing::error;
@@ -180,8 +180,9 @@ pub type LocalAttestationsMap = HashMap<String, HashMap<u64, Attestation>>;
 /// per Radio instance, so that we can keep track of state and more easily test our Radio application.
 pub static GRAPHCAST_AGENT: OnceCell<GraphcastAgent> = OnceCell::new();
 
-pub type MessagesVec = OnceCell<Arc<Mutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>>;
-pub type MessagesArc = Arc<Mutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>;
+pub type MessagesVec =
+    OnceCell<Arc<SyncMutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>>;
+pub type MessagesArc = Arc<SyncMutex<Vec<(String, GraphcastMessage<RadioPayloadMessage>)>>>;
 
 /// A global static (singleton) instance of A GraphcastMessage vector.
 /// It is used to save incoming messages after they've been validated, in order
@@ -365,12 +366,12 @@ impl std::fmt::Display for CompareError {
 /// The top remote attestation is found by grouping attestations together and increasing their total stake-weight every time we see a new message
 /// with the same NPOI from an Indexer (NOTE: one Indexer can only send 1 attestation per subgraph per block). The attestations are then sorted
 /// and we take the one with the highest total stake-weight.
-pub fn compare_attestations(
+pub async fn compare_attestations(
     attestation_block: u64,
     remote: RemoteAttestationsMap,
-    local: Arc<Mutex<LocalAttestationsMap>>,
+    local: Arc<AsyncMutex<LocalAttestationsMap>>,
 ) -> Result<String, CompareError> {
-    let local = local.lock().unwrap();
+    let local = local.lock().await;
 
     // Iterate & compare
     if let Some((ipfs_hash, blocks)) = local.iter().next() {
