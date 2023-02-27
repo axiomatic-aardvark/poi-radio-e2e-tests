@@ -1,7 +1,7 @@
 use poi_radio_e2e_tests::MessagesArc;
 
-use super::utils::RadioRuntimeConfig;
 use crate::setup::test_radio::run_test_radio;
+use poi_radio_e2e_tests::utils::RadioRuntimeConfig;
 
 fn success_handler(_messages: MessagesArc) {}
 

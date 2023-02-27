@@ -1,5 +1,5 @@
+use crate::RadioPayloadMessage;
 use graphcast_sdk::graphcast_agent::message_typing::GraphcastMessage;
-use poi_radio_e2e_tests::RadioPayloadMessage;
 use rand::{thread_rng, Rng};
 use secp256k1::SecretKey;
 use sha3::{Digest, Keccak256};

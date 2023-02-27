@@ -1,8 +1,8 @@
 use crate::checks::deduplicate_messages;
-use crate::setup::{test_radio::run_test_radio, utils::RadioRuntimeConfig};
+use crate::setup::test_radio::run_test_radio;
 use colored::Colorize;
 use partial_application::partial;
-use poi_radio_e2e_tests::MessagesArc;
+use poi_radio_e2e_tests::{utils::RadioRuntimeConfig, MessagesArc};
 use tracing::info;
 
 fn handler(count: u32, messages: MessagesArc) {

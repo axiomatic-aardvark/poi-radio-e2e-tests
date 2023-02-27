@@ -1,8 +1,8 @@
 use colored::Colorize;
-use poi_radio_e2e_tests::MessagesArc;
+use poi_radio_e2e_tests::{utils::RadioRuntimeConfig, MessagesArc};
 use tracing::{debug, info};
 
-use crate::setup::{test_radio::run_test_radio, utils::RadioRuntimeConfig};
+use crate::setup::test_radio::run_test_radio;
 
 fn success_handler(messages: MessagesArc) {
     let messages = messages.lock().unwrap();

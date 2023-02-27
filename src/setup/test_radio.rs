@@ -26,12 +26,10 @@ use tracing::{debug, error, info};
 
 use crate::graphql::{query_graph_node_poi, update_network_chainheads};
 use crate::setup::constants::{MOCK_SUBGRAPH_GOERLI, MOCK_SUBGRAPH_MAINNET};
-use crate::setup::utils::{
+use poi_radio_e2e_tests::utils::{
     empty_attestation_handler, generate_random_address, get_random_port, setup_mock_env_vars,
-    setup_mock_server,
+    setup_mock_server, RadioRuntimeConfig,
 };
-
-use super::utils::RadioRuntimeConfig;
 
 pub async fn run_test_radio<F>(config: &RadioRuntimeConfig, success_handler: F)
 where

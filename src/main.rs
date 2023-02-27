@@ -12,8 +12,8 @@ use tracing::{error, info};
 use crate::checks::{
     correct_filtering_default_topics::run_correct_filtering_default_topics,
     correct_filtering_different_topics::run_correct_filtering_different_topics,
-    invalid_sender::run_invalid_sender, invalid_time::run_invalid_time,
-    test_num_messages::run_num_messages,
+    invalid_block_hash::run_invalid_block_hash, invalid_sender::run_invalid_sender,
+    invalid_time::run_invalid_time, test_num_messages::run_num_messages,
 };
 
 #[derive(Clone, Debug)]
@@ -29,6 +29,7 @@ enum Check {
     CorrectFilteringDifferentTopics,
     InvalidSender,
     InvalidTime,
+    InvalidBlockHash,
 }
 
 /// Simple program to greet a person
@@ -65,6 +66,7 @@ impl FromStr for Check {
             "correct_filtering_different_topics" => Ok(Check::CorrectFilteringDifferentTopics),
             "invalid_sender" => Ok(Check::InvalidSender),
             "invalid_time" => Ok(Check::InvalidTime),
+            "invalid_hash" => Ok(Check::InvalidBlockHash),
             _ => Err(format!("Invalid check type: {s}")),
         }
     }
@@ -134,6 +136,12 @@ pub async fn main() {
             Ok(Check::InvalidTime) => std::thread::spawn(|| {
                 info!("Starting invalid_time check");
                 run_invalid_time();
+            })
+            .join()
+            .expect("Thread panicked"),
+            Ok(Check::InvalidBlockHash) => std::thread::spawn(|| {
+                info!("Starting invalid_block_hash check");
+                run_invalid_block_hash();
             })
             .join()
             .expect("Thread panicked"),

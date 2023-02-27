@@ -1,3 +1,5 @@
+pub mod utils;
+
 use anyhow::anyhow;
 use colored::*;
 use ethers_contract::EthAbiType;
