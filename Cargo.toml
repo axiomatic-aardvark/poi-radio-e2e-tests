@@ -3,14 +3,14 @@ name = "poi-radio-e2e-tests"
 version = "0.0.1"
 edition = "2021"
 authors = ["GraphOps (axiomatic-aardvark, hopeyen)"]
-description="POI Radio integration tests"
-license="Apache-2.0"
-repository="https://github.com/axiomatic-aardvark/poi-radio-e2e-tests"
-keywords=["graphprotocol", "data-integrity", "Indexer", "waku", "p2p"]
-categories=["network-programming", "web-programming::http-client"]
+description = "POI Radio integration tests"
+license = "Apache-2.0"
+repository = "https://github.com/axiomatic-aardvark/poi-radio-e2e-tests"
+keywords = ["graphprotocol", "data-integrity", "Indexer", "waku", "p2p"]
+categories = ["network-programming", "web-programming::http-client"]
 
 [dependencies]
-graphcast-sdk = "0.0.9"
+graphcast-sdk = { package = "graphcast-sdk", git = "https://github.com/axiomatic-aardvark/graphcast-test" }
 prost = "0.11"
 once_cell = "1.15"
 chrono = "0.4"
@@ -42,5 +42,5 @@ sha3 = "0.10.6"
 
 [dev-dependencies.cargo-husky]
 version = "1"
-default-features = false # Disable features which are enabled by default
+default-features = false                                           # Disable features which are enabled by default
 features = ["precommit-hook", "run-cargo-fmt", "run-cargo-clippy"]

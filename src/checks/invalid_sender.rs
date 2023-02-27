@@ -10,13 +10,15 @@ fn success_handler(messages: MessagesArc) {
     if messages.len() == 0 {
         info!("{}", "invalid_sender test is sucessful ✅".green());
         std::process::exit(0);
+    } else {
+        info!("{}", "invalid_sender test failed".red());
+        std::process::exit(1);
     }
 }
 
 #[tokio::main]
 pub async fn run_invalid_sender() {
     let mut config = RadioRuntimeConfig::new(false, true);
-    // These values are for the Indexer we're RECEIVING from, now our own
     config.indexer_address = Some("0x002aee240e7a4b356620b0a6053c14a073499413".to_string());
     config.operator_address = Some("0x92239c8f2baba65dc4de65bd9fa16defc08699c7".to_string());
     config.indexer_stake = "1".to_string();
