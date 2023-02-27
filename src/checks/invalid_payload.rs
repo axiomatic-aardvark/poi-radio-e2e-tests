@@ -1,5 +1,4 @@
 use crate::checks::deduplicate_messages;
-use crate::setup::constants::MOCK_SUBGRAPH_GOERLI;
 use colored::Colorize;
 use poi_radio_e2e_tests::{utils::RadioRuntimeConfig, MessagesArc};
 use tracing::{debug, info};
@@ -25,8 +24,7 @@ fn success_handler(messages: MessagesArc) {
             messages
                 .iter()
                 .all(|m| !type_of(&m.1.payload).contains("DummyMsg")),
-            "Message found with topic {}",
-            MOCK_SUBGRAPH_GOERLI
+            "Message found with invalid payload",
         );
         info!("{}", "invalid_payload test is sucessful ✅".green());
         std::process::exit(0);

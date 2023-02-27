@@ -9,6 +9,7 @@ pub mod invalid_block_hash;
 pub mod invalid_payload;
 pub mod invalid_sender;
 pub mod invalid_time;
+pub mod skip_messages_from_self;
 pub mod test_num_messages;
 pub mod test_poi_ok;
 

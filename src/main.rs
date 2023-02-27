@@ -15,7 +15,7 @@ use crate::{
         correct_filtering_different_topics::run_correct_filtering_different_topics,
         invalid_block_hash::run_invalid_block_hash, invalid_payload::run_invalid_payload,
         invalid_sender::run_invalid_sender, invalid_time::run_invalid_time,
-        test_num_messages::run_num_messages,
+        skip_messages_from_self::run_skip_messages_from_self, test_num_messages::run_num_messages,
     },
     setup::invalid_payload::run_invalid_payload_instance,
 };
@@ -36,6 +36,7 @@ enum Check {
     InvalidTime,
     InvalidBlockHash,
     InvalidPayload,
+    SkipMessagesFromSelf,
 }
 
 /// Simple program to greet a person
@@ -75,6 +76,7 @@ impl FromStr for Check {
             "invalid_time" => Ok(Check::InvalidTime),
             "invalid_hash" => Ok(Check::InvalidBlockHash),
             "invalid_payload" => Ok(Check::InvalidPayload),
+            "skip_messages_from_self" => Ok(Check::SkipMessagesFromSelf),
             _ => Err(format!("Invalid check type: {s}")),
         }
     }
@@ -165,6 +167,12 @@ pub async fn main() {
             Ok(Check::InvalidPayload) => std::thread::spawn(|| {
                 info!("Starting invalid_payload check");
                 run_invalid_payload();
+            })
+            .join()
+            .expect("Thread panicked"),
+            Ok(Check::SkipMessagesFromSelf) => std::thread::spawn(|| {
+                info!("Starting skip_messages_from_self check");
+                run_skip_messages_from_self();
             })
             .join()
             .expect("Thread panicked"),
