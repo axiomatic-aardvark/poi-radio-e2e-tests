@@ -5,20 +5,25 @@ pub mod setup;
 use checks::test_poi_ok::run_poi_ok;
 use clap::Parser;
 use graphcast_sdk::init_tracing;
-use setup::basic_instance::run_basic_instance;
+use setup::basic::run_basic_instance;
 use std::str::FromStr;
 use tracing::{error, info};
 
-use crate::checks::{
-    correct_filtering_default_topics::run_correct_filtering_default_topics,
-    correct_filtering_different_topics::run_correct_filtering_different_topics,
-    invalid_block_hash::run_invalid_block_hash, invalid_sender::run_invalid_sender,
-    invalid_time::run_invalid_time, test_num_messages::run_num_messages,
+use crate::{
+    checks::{
+        correct_filtering_default_topics::run_correct_filtering_default_topics,
+        correct_filtering_different_topics::run_correct_filtering_different_topics,
+        invalid_block_hash::run_invalid_block_hash, invalid_payload::run_invalid_payload,
+        invalid_sender::run_invalid_sender, invalid_time::run_invalid_time,
+        test_num_messages::run_num_messages,
+    },
+    setup::invalid_payload::run_invalid_payload_instance,
 };
 
 #[derive(Clone, Debug)]
 enum Instance {
-    BasicInstance,
+    Basic,
+    InvalidPayload,
 }
 
 #[derive(Clone, Debug)]
@@ -30,6 +35,7 @@ enum Check {
     InvalidSender,
     InvalidTime,
     InvalidBlockHash,
+    InvalidPayload,
 }
 
 /// Simple program to greet a person
@@ -49,7 +55,8 @@ impl FromStr for Instance {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "basic" => Ok(Instance::BasicInstance),
+            "basic" => Ok(Instance::Basic),
+            "invalid_payload" => Ok(Instance::InvalidPayload),
             _ => Err(format!("Invalid instance type: {s}")),
         }
     }
@@ -67,6 +74,7 @@ impl FromStr for Check {
             "invalid_sender" => Ok(Check::InvalidSender),
             "invalid_time" => Ok(Check::InvalidTime),
             "invalid_hash" => Ok(Check::InvalidBlockHash),
+            "invalid_payload" => Ok(Check::InvalidPayload),
             _ => Err(format!("Invalid check type: {s}")),
         }
     }
@@ -79,11 +87,20 @@ pub async fn main() {
 
     if let Some(instance) = &args.instance {
         match Instance::from_str(instance) {
-            Ok(Instance::BasicInstance) => {
+            Ok(Instance::Basic) => {
                 info!("Starting basic instance");
 
                 std::thread::spawn(|| {
                     run_basic_instance();
+                })
+                .join()
+                .expect("Thread panicked")
+            }
+            Ok(Instance::InvalidPayload) => {
+                info!("Starting invalid payload instance");
+
+                std::thread::spawn(|| {
+                    run_invalid_payload_instance();
                 })
                 .join()
                 .expect("Thread panicked")
@@ -142,6 +159,12 @@ pub async fn main() {
             Ok(Check::InvalidBlockHash) => std::thread::spawn(|| {
                 info!("Starting invalid_block_hash check");
                 run_invalid_block_hash();
+            })
+            .join()
+            .expect("Thread panicked"),
+            Ok(Check::InvalidPayload) => std::thread::spawn(|| {
+                info!("Starting invalid_payload check");
+                run_invalid_payload();
             })
             .join()
             .expect("Thread panicked"),

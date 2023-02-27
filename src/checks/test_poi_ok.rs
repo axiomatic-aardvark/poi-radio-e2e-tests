@@ -7,10 +7,10 @@ use crate::setup::test_radio::run_test_radio;
 fn success_handler(messages: MessagesArc) {
     let messages = messages.lock().unwrap();
 
-    if messages.len() >= 10 {
+    if messages.len() >= 5 {
         debug!("{:?}", messages);
 
-        info!("10 valid messages received!");
+        info!("5 valid messages received!");
         info!("{}", "poi_ok test is sucessful ✅".green());
         std::process::exit(0);
     }

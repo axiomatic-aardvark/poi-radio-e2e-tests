@@ -11,8 +11,8 @@ use num_traits::Zero;
 use partial_application::partial;
 use poi_radio_e2e_tests::{
     attestation_handler, compare_attestations, process_messages, save_local_attestation,
-    Attestation, BlockClock, BlockPointer, CompareError, LocalAttestationsMap, MessagesArc,
-    RadioPayloadMessage, GRAPHCAST_AGENT, MESSAGES, NETWORKS,
+    Attestation, BlockClock, BlockPointer, CompareError, DummyMsg, LocalAttestationsMap,
+    MessagesArc, RadioPayloadMessage, GRAPHCAST_AGENT, MESSAGES, NETWORKS,
 };
 use rand::{thread_rng, Rng};
 use secp256k1::SecretKey;
@@ -330,6 +330,31 @@ where
                         continue;
                     }
                 };
+
+                if config.invalid_payload {
+                    // Send dummy msg
+                    debug!("Sending dummy message");
+                    let radio_message = DummyMsg::new(id.clone(), 5);
+                    info!(
+                        "{}: {:?}",
+                        "Attempting to send message".magenta(),
+                        radio_message
+                    );
+
+                    match GRAPHCAST_AGENT
+                        .get()
+                        .unwrap()
+                        .send_message(id.clone(), network_name, message_block, Some(radio_message))
+                        .await
+                    {
+                        Ok(sent) => {
+                            info!("{}: {}", "Sent message id".green(), sent);
+                        }
+                        Err(e) => error!("{}: {}", "Failed to send message".red(), e),
+                    };
+
+                    continue;
+                }
 
                 match poi_query(block_hash.clone(), message_block.try_into().unwrap()).await {
                     Ok(content) => {

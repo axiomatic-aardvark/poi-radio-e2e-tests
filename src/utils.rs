@@ -190,6 +190,7 @@ pub struct RadioRuntimeConfig {
     pub poi: String,
     pub indexer_address: Option<String>,
     pub operator_address: Option<String>,
+    pub invalid_payload: bool,
 }
 
 impl RadioRuntimeConfig {
@@ -202,6 +203,7 @@ impl RadioRuntimeConfig {
             poi: "0x25331f98b82ca7f3966256bf508a7ede52e715b631dfa3d73b846bb7617f6b9e".to_string(),
             indexer_address: None,
             operator_address: None,
+            invalid_payload: false,
         }
     }
     pub fn new(is_setup_instance: bool, panic_if_poi_diverged: bool) -> Self {
@@ -213,6 +215,7 @@ impl RadioRuntimeConfig {
             poi: "0x25331f98b82ca7f3966256bf508a7ede52e715b631dfa3d73b846bb7617f6b9e".to_string(),
             indexer_address: None,
             operator_address: None,
+            invalid_payload: false,
         }
     }
 }

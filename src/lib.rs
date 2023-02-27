@@ -29,6 +29,29 @@ use graphcast_sdk::{
 
 #[derive(Eip712, EthAbiType, Clone, Message, Serialize, Deserialize)]
 #[eip712(
+    name = "Graphcast POI Radio Dummy Msg",
+    version = "0",
+    chain_id = 1,
+    verifying_contract = "0xc944e90c64b2c07662a292be6244bdf05cda44a7"
+)]
+pub struct DummyMsg {
+    #[prost(string, tag = "1")]
+    pub identifier: String,
+    #[prost(int32, tag = "2")]
+    pub dummy_value: i32,
+}
+
+impl DummyMsg {
+    pub fn new(identifier: String, dummy_value: i32) -> Self {
+        DummyMsg {
+            identifier,
+            dummy_value,
+        }
+    }
+}
+
+#[derive(Eip712, EthAbiType, Clone, Message, Serialize, Deserialize)]
+#[eip712(
     name = "Graphcast POI Radio",
     version = "0",
     chain_id = 1,
